@@ -2,7 +2,7 @@
 
 An interactive, browser-based laptop spec comparator built with vanilla HTML, CSS, and JavaScript — no frameworks, no dependencies, no setup required. Compare up to 3 laptops side by side with automatic winner highlighting per spec category.
 
-**🔗 Live demo:** `https://ZGM5703.github.io/laptop-comparator/` *(after enabling GitHub Pages — see below)*
+**🔗 Live demo:** `https://zgm5703.github.io/SpecMatch/`
 
 ---
 
@@ -22,7 +22,7 @@ You select up to **3 laptops** from a dataset of 18 real models across ASUS, Len
 3. That's it — no install, no build step
 
 ```bash
-git clone https://github.com/ZGM5703/laptop-comparator.git
+git clone https://github.com/ZGM5703/SpecMatch.git
 cd laptop-comparator
 open index.html
 ```

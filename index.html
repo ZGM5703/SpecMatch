@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SpecMatch — Laptop Comparison Tool</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #0d1117;
+  --surface:   #161b22;
+  --card:      #21262d;
+  --border:    #30363d;
+  --border2:   #484f58;
+  --text:      #e6edf3;
+  --muted:     #8b949e;
+  --faint:     #484f58;
+  --blue:      #58a6ff;
+  --blue-bg:   rgba(88,166,255,0.1);
+  --green:     #3fb950;
+  --green-bg:  rgba(63,185,80,0.12);
+  --amber:     #f0883e;
+  --amber-bg:  rgba(240,136,62,0.12);
+  --red:       #f85149;
+  --radius:    8px;
+  --radius-sm: 5px;
+  --sans:  'Inter', system-ui, sans-serif;
+  --mono:  'JetBrains Mono', monospace;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px 20px 80px;
+}
+
+/* Header */
+.site-header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--blue);
+  margin-bottom: 10px;
+}
+.site-header h1 {
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.site-header h1 span { color: var(--blue); }
+.site-header p {
+  font-size: 14px;
+  color: var(--muted);
+  max-width: 460px;
+  margin: 0 auto;
+}
+
+/* Slot grid */
+.slots-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.slot {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.slot.filled { border-color: var(--blue); }
+
+.slot-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+}
+.slot-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.slot-clear {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--faint);
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 2px;
+  border-radius: 3px;
+  transition: color 0.15s;
+  display: none;
+}
+.slot.filled .slot-clear { display: block; }
+.slot-clear:hover { color: var(--red); }
+
+.slot-body { padding: 14px; }
+
+/* Brand filter buttons */
+.brand-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.brand-btn {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.brand-btn:hover { border-color: var(--border2); color: var(--text); }
+.brand-btn.active { background: var(--blue); border-color: var(--blue); color: #0d1117; font-weight: 600; }
+
+/* Select dropdown */
+.slot-select {
+  width: 100%;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 13px;
+  padding: 9px 12px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238b949e' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+.slot-select:focus { border-color: var(--blue); }
+.slot-select option { background: var(--card); }
+
+/* Selected laptop card */
+.laptop-card { display: none; }
+.slot.filled .laptop-card { display: block; }
+.slot.filled .select-wrap { display: none; }
+
+.laptop-brand-chip {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+.laptop-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.3;
+  margin-bottom: 6px;
+}
+.laptop-price-tag {
+  font-family: var(--mono);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--green);
+  margin-bottom: 10px;
+}
+.laptop-thumb {
+  width: 100%;
+  height: 90px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  margin-bottom: 10px;
+  border: 1px solid var(--border);
+}
+.laptop-tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.laptop-tag {
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 3px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+/* Compare button */
+.compare-bar {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 32px;
+}
+.btn-compare {
+  background: var(--blue);
+  color: #0d1117;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 12px 36px;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s, opacity 0.2s;
+}
+.btn-compare:hover { background: #79baff; }
+.btn-compare:active { transform: scale(0.98); }
+.btn-compare.inactive { opacity: 0.3; cursor: default; pointer-events: none; }
+
+/* Comparison table */
+.compare-table-wrap {
+  display: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+.compare-table-wrap.show { display: block; }
+
+.ct-header {
+  display: grid;
+  background: var(--card);
+  border-bottom: 2px solid var(--border);
+}
+.ct-header-cell {
+  padding: 14px 16px;
+  border-right: 1px solid var(--border);
+}
+.ct-header-cell:last-child { border-right: none; }
+.ct-header-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.3;
+}
+.ct-header-price {
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--green);
+  margin-top: 2px;
+}
+.ct-header-brand {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.ct-header-cell.label-col {
+  background: var(--surface);
+}
+
+/* Table rows */
+.ct-section-title {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--blue);
+  padding: 10px 16px 8px;
+  background: rgba(88,166,255,0.05);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  grid-column: 1 / -1;
+}
+
+.ct-row {
+  display: contents;
+}
+.ct-cell {
+  padding: 11px 16px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+  vertical-align: middle;
+  transition: background 0.15s;
+}
+.ct-cell:last-child { border-right: none; }
+.ct-cell.label {
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  background: var(--card);
+}
+.ct-cell.winner {
+  background: var(--green-bg);
+  color: var(--green);
+  font-weight: 700;
+  position: relative;
+}
+.ct-cell.winner::after {
+  content: '▲';
+  font-size: 8px;
+  margin-left: 5px;
+  opacity: 0.7;
+}
+.ct-cell.best-price {
+  background: var(--amber-bg);
+  color: var(--amber);
+  font-weight: 700;
+}
+.ct-cell.best-price::after {
+  content: '★';
+  font-size: 9px;
+  margin-left: 5px;
+}
+.winner-note {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+  padding: 10px 16px;
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.winner-note span { display: flex; align-items: center; gap: 6px; }
+.wn-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+/* No comparison prompt */
+.empty-compare {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--muted);
+}
+.empty-compare .ec-icon { font-size: 40px; margin-bottom: 16px; }
+.empty-compare p { font-size: 13px; }
+
+/* Responsive */
+@media (max-width: 640px) {
+  .slots-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 800px) {
+  .ct-header, .ct-row { display: block; }
+  .ct-section-title { display: block; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="site-header">
+    <div class="eyebrow">Laptop Comparison Tool</div>
+    <h1>Spec<span>Match</span></h1>
+    <p>Pick up to 3 laptops and compare specs side by side — processor, RAM, storage, display, and price in Philippine peso.</p>
+  </div>
+
+  <!-- Slots -->
+  <div class="slots-grid" id="slots-grid"></div>
+
+  <!-- Compare button -->
+  <div class="compare-bar">
+    <button class="btn-compare inactive" id="compare-btn" onclick="buildTable()">Compare Laptops</button>
+  </div>
+
+  <!-- Results table -->
+  <div class="compare-table-wrap" id="compare-table"></div>
+
+</div>
+
+<script>
+/* ============================================================
+   DATA — Real laptops, PH market prices (mid-2025 estimates)
+   ============================================================ */
+const LAPTOPS = [
+  // ASUS
+  {
+    id: 'asus-vivobook-15',
+    brand: 'ASUS', brandColor: '#00539B', brandBg: '#e8f2ff', brandText: '#00539B',
+    name: 'VivoBook 15 OLED K3504', emoji: '💻',
+    price: 39995,
+    cpu: 'Intel Core i5-1335U', cpuScore: 6,
+    gpu: 'Intel Iris Xe Graphics', gpuScore: 2,
+    ram: '16GB DDR4', ramGb: 16,
+    storage: '512GB NVMe SSD', storageGb: 512,
+    display: '15.6" OLED FHD 60Hz', displayScore: 8,
+    battery: '50Whr (~8 hrs)', batteryScore: 7,
+    weight: '1.70 kg', weightKg: 1.70,
+    os: 'Windows 11 Home',
+    tags: ['OLED', 'Thin & Light', 'Everyday Use'],
+  },
+  {
+    id: 'asus-zenbook-14',
+    brand: 'ASUS', brandColor: '#00539B', brandBg: '#e8f2ff', brandText: '#00539B',
+    name: 'ZenBook 14 OLED UX3405', emoji: '💻',
+    price: 64995,
+    cpu: 'Intel Core Ultra 5 125H', cpuScore: 8,
+    gpu: 'Intel Arc Graphics', gpuScore: 4,
+    ram: '16GB LPDDR5X', ramGb: 16,
+    storage: '512GB NVMe SSD', storageGb: 512,
+    display: '14" OLED 2.8K 120Hz', displayScore: 10,
+    battery: '75Whr (~12 hrs)', batteryScore: 10,
+    weight: '1.20 kg', weightKg: 1.20,
+    os: 'Windows 11 Home',
+    tags: ['OLED', 'Ultrabook', 'Premium'],
+  },
+  {
+    id: 'asus-tuf-gaming-a15',
+    brand: 'ASUS', brandColor: '#00539B', brandBg: '#e8f2ff', brandText: '#00539B',
+    name: 'TUF Gaming A15 FA507N', emoji: '🎮',
+    price: 54995,
+    cpu: 'AMD Ryzen 7 7435HS', cpuScore: 8,
+    gpu: 'NVIDIA RTX 4050 6GB', gpuScore: 8,
+    ram: '16GB DDR5', ramGb: 16,
+    storage: '512GB NVMe SSD', storageGb: 512,
+    display: '15.6" FHD IPS 144Hz', displayScore: 7,
+    battery: '90Whr (~6 hrs)', batteryScore: 6,
+    weight: '2.20 kg', weightKg: 2.20,
+    os: 'Windows 11 Home',
+    tags: ['Gaming', 'RTX 4050', 'High Refresh'],
+  },
+  {
+    id: 'asus-rog-strix-g16',
+    brand: 'ASUS', brandColor: '#00539B', brandBg: '#e8f2ff', brandText: '#00539B',
+    name: 'ROG Strix G16 G614J', emoji: '🎮',
+    price: 89995,
+    cpu: 'Intel Core i7-13650HX', cpuScore: 9,
+    gpu: 'NVIDIA RTX 4060 8GB', gpuScore: 9,
+    ram: '16GB DDR5', ramGb: 16,
+    storage: '1TB NVMe SSD', storageGb: 1000,
+    display: '16" QHD+ 240Hz IPS', displayScore: 9,
+    battery: '90Whr (~5 hrs)', batteryScore: 5,
+    weight: '2.50 kg', weightKg: 2.50,
+    os: 'Windows 11 Home',
+    tags: ['Gaming', 'RTX 4060', 'QHD+'],
+  },
+  // LENOVO
+  {
+    id: 'lenovo-ideapad-slim5',
+    brand: 'Lenovo', brandColor: '#E2231A', brandBg: '#fff0ef', brandText: '#E2231A',
+    name: 'IdeaPad Slim 5 Gen 8', emoji: '💻',
+    price: 37995,
+    cpu: 'AMD Ryzen 5 7530U', cpuScore: 6,
+    gpu: 'AMD Radeon Integrated', gpuScore: 2,
+    ram: '16GB LPDDR4X', ramGb: 16,
+    storage: '512GB NVMe SSD', storageGb: 512,
+    display: '15.6" FHD IPS 60Hz', displayScore: 5,
+    battery: '57Whr (~9 hrs)', batteryScore: 8,
+    weight: '1.63 kg', weightKg: 1.63,
+    os: 'Windows 11 Home',
+    tags: ['Value Pick', 'AMD Ryzen', 'All-Day Battery'],
+  },
+  {
+    id: 'lenovo-thinkpad-e14',
+    brand: 'Lenovo', brandColor: '#E2231A', brandBg: '#fff0ef', brandText: '#E2231A',
+    name: 'ThinkPad E14 Gen 5', emoji: '💼',
+    price: 55995,
+    cpu: 'Intel Core i5-1335U', cpuScore: 6,
+    gpu: 'Intel Iris Xe Graphics', gpuScore: 2,
+    ram: '16GB DDR5', ramGb: 16,
+    storage: '512GB NVMe SSD', storageGb: 512,
+    display: '14" FHD IPS 60Hz', displayScore: 6,
+    battery: '57Whr (~10 hrs)', batteryScore: 9,
+    weight: '1.59 kg', weightKg: 1.59,
+    os: 'Windows 11 Pro',
+    tags: ['Business', 'Durable', 'Win 11 Pro'],
+  },
+  {
+    id: 'lenovo-legion-5',
+    brand: 'Lenovo', brandColor: '#E2231A', brandBg: '#fff0ef', brandText: '#E2231A',
+    name: 'Legion 5 Gen 8 15ACH', emoji: '🎮',
+    price: 69995,
+    cpu: 'AMD Ryzen 7 7745HX', cpuScore: 9,
+    gpu: 'NVIDIA RTX 4060 8GB', gpuScore: 9,
+    ram: '16GB DDR5', ramGb: 16,
+    storage: '512GB NVMe SSD', storageGb: 512,
+    display: '15.6" FHD IPS 165Hz', displayScore: 8,
+    battery: '80Whr (~5 hrs)', batteryScore: 5,
+    weight: '2.40 kg', weightKg: 2.40,
+    os: 'Windows 11 Home',
+    tags: ['Gaming', 'RTX 4060', '165Hz'],
+  },
+  {
+    id: 'lenovo-yoga-slim7',
+    brand: 'Lenovo', brandColor: '#E2231A', brandBg: '#fff0ef', brandText: '#E2231A',
+    name: 'Yoga Slim 7 Pro 14APH8', emoji: '🌟',
+    price: 74995,
+    cpu: 'AMD Ryzen 7 7745HS', cpuScore: 9,
+    gpu: 'NVIDIA RTX 3050 4GB', gpuScore: 6,
+    ram: '16GB LPDDR5', ramGb: 16,
+    storage: '1TB NVMe SSD', storageGb: 1000,
+    display: '14.5" 2.8K OLED 90Hz', displayScore: 10,
+    battery: '70Whr (~11 hrs)', batteryScore: 9,
+    weight: '1.40 kg', weightKg: 1.40,
+    os: 'Windows 11 Home',
+    tags: ['OLED', 'Premium', 'Thin & Light'],
+  },
+  // ACER
+  {
+    id: 'acer-aspire-5',
+    brand: 'Acer', brandColor: '#6ABF4B', brandBg: '#f0faeb', brandText: '#3a8a26',
+    name: 'Aspire 5 A515-58M', emoji: '💻',
+    price: 32995,
+    cpu: 'Intel Core i5-1335U', cpuScore: 6,
+    gpu: 'Intel Iris Xe Graphics', gpuScore: 2,
+    ram: '8GB DDR5', ramGb: 8,
+    storage: '512GB NVMe SSD', storageGb: 512,
+    display: '15.6" FHD IPS 60Hz', displayScore: 5,
+    battery: '56Whr (~8 hrs)', batteryScore: 7,
+    weight: '1.70 kg', weightKg: 1.70,
+    os: 'Windows 11 Home',
+    tags: ['Budget', 'Entry Level', 'Student'],
+  },
+  {
+    id: 'acer-swift-go-14',
+    brand: 'Acer', brandColor: '#6ABF4B', brandBg: '#f0faeb', brandText: '#3a8a26',
+    name: 'Swift Go 14 SFG14-72', emoji: '💨',
+    price: 54995,
+    cpu: 'Intel Core Ultra 5 125U', cpuScore: 7,
+    gpu: 'Intel Arc Graphics', gpuScore: 4,
+    ram: '16GB LPDDR5X', ramGb: 16,
+    storage: '512GB NVMe SSD', storageGb: 512,
+    display: '14" OLED FHD 60Hz', displayScore: 9,
+    battery: '65Whr (~10 hrs)', batteryScore: 9,
+    weight: '1.35 kg', weightKg: 1.35,
+    os: 'Windows 11 Home',
+    tags: ['OLED', 'Ultrabook', 'Intel Arc'],
+  },
+  {
+    id: 'acer-nitro-v15',
+    brand: 'Acer', brandColor: '#6ABF4B', brandBg: '#f0faeb', brandText: '#3a8a26',
+    name: 'Nitro V 15 ANV15-51', emoji: '🎮',
+    price: 49995,
+    cpu: 'Intel Core i5-13420H', cpuScore: 7,
+    gpu: 'NVIDIA RTX 4050 6GB', gpuScore: 8,
+    ram: '16GB DDR5', ramGb: 16,
+    storage: '512GB NVMe SSD', storageGb: 512,
+    display: '15.6" FHD IPS 144Hz', displayScore: 7,
+    battery: '57Whr (~5 hrs)', batteryScore: 5,
+    weight: '2.50 kg', weightKg: 2.50,
+    os: 'Windows 11 Home',
+    tags: ['Gaming', 'RTX 4050', 'Budget Gaming'],
+  },
+  // MSI
+  {
+    id: 'msi-modern-14',
+    brand: 'MSI', brandColor: '#FF0000', brandBg: '#fff0f0', brandText: '#cc0000',
+    name: 'Modern 14 C12MO', emoji: '💻',
+    price: 38995,
+    cpu: 'Intel Core i5-1235U', cpuScore: 6,
+    gpu: 'Intel Iris Xe Graphics', gpuScore: 2,
+    ram: '8GB DDR4', ramGb: 8,
+    storage: '512GB NVMe SSD', storageGb: 512,
+    display: '14" FHD IPS 60Hz', displayScore: 5,
+    battery: '53Whr (~8 hrs)', batteryScore: 7,
+    weight: '1.40 kg', weightKg: 1.40,
+    os: 'Windows 11 Home',
+    tags: ['Thin & Light', 'Portable', 'Office'],
+  },
+  {
+    id: 'msi-katana-15',
+    brand: 'MSI', brandColor: '#FF0000', brandBg: '#fff0f0', brandText: '#cc0000',
+    name: 'Katana 15 B13VFK', emoji: '🎮',
+    price: 69995,
+    cpu: 'Intel Core i7-13620H', cpuScore: 9,
+    gpu: 'NVIDIA RTX 4060 8GB', gpuScore: 9,
+    ram: '16GB DDR5', ramGb: 16,
+    storage: '512GB NVMe SSD', storageGb: 512,
+    display: '15.6" FHD IPS 144Hz', displayScore: 7,
+    battery: '53Whr (~4 hrs)', batteryScore: 4,
+    weight: '2.25 kg', weightKg: 2.25,
+    os: 'Windows 11 Home',
+    tags: ['Gaming', 'RTX 4060', 'i7'],
+  },
+  {
+    id: 'msi-creator-m16',
+    brand: 'MSI', brandColor: '#FF0000', brandBg: '#fff0f0', brandText: '#cc0000',
+    name: 'Creator M16 HX C14VF', emoji: '🎨',
+    price: 109995,
+    cpu: 'Intel Core i7-14700HX', cpuScore: 10,
+    gpu: 'NVIDIA RTX 4060 8GB', gpuScore: 9,
+    ram: '32GB DDR5', ramGb: 32,
+    storage: '1TB NVMe SSD', storageGb: 1000,
+    display: '16" QHD+ 240Hz IPS', displayScore: 9,
+    battery: '99Whr (~6 hrs)', batteryScore: 6,
+    weight: '2.30 kg', weightKg: 2.30,
+    os: 'Windows 11 Pro',
+    tags: ['Creator', '32GB RAM', 'i7 14th Gen'],
+  },
+  // HP
+  {
+    id: 'hp-pavilion-15',
+    brand: 'HP', brandColor: '#0096D6', brandBg: '#e8f6fd', brandText: '#006fa0',
+    name: 'Pavilion 15-eg3016TU', emoji: '💻',
+    price: 34995,
+    cpu: 'Intel Core i5-1335U', cpuScore: 6,
+    gpu: 'Intel Iris Xe Graphics', gpuScore: 2,
+    ram: '8GB DDR4', ramGb: 8,
+    storage: '512GB NVMe SSD', storageGb: 512,
+    display: '15.6" FHD IPS 60Hz', displayScore: 5,
+    battery: '41Whr (~7 hrs)', batteryScore: 6,
+    weight: '1.75 kg', weightKg: 1.75,
+    os: 'Windows 11 Home',
+    tags: ['Budget', 'Entry Level', 'Everyday'],
+  },
+  {
+    id: 'hp-envy-x360-14',
+    brand: 'HP', brandColor: '#0096D6', brandBg: '#e8f6fd', brandText: '#006fa0',
+    name: 'Envy x360 14-fa0053AU', emoji: '🔄',
+    price: 64995,
+    cpu: 'AMD Ryzen 5 7530U', cpuScore: 6,
+    gpu: 'AMD Radeon + RTX 3050', gpuScore: 5,
+    ram: '16GB LPDDR4X', ramGb: 16,
+    storage: '512GB NVMe SSD', storageGb: 512,
+    display: '14" OLED FHD Touch', displayScore: 9,
+    battery: '66Whr (~10 hrs)', batteryScore: 9,
+    weight: '1.59 kg', weightKg: 1.59,
+    os: 'Windows 11 Home',
+    tags: ['2-in-1', 'OLED Touch', 'Convertible'],
+  },
+  // DELL
+  {
+    id: 'dell-inspiron-15',
+    brand: 'Dell', brandColor: '#007DB8', brandBg: '#e8f4fb', brandText: '#005a87',
+    name: 'Inspiron 15 3530', emoji: '💻',
+    price: 35995,
+    cpu: 'Intel Core i5-1334U', cpuScore: 6,
+    gpu: 'Intel Iris Xe Graphics', gpuScore: 2,
+    ram: '8GB DDR4', ramGb: 8,
+    storage: '512GB NVMe SSD', storageGb: 512,
+    display: '15.6" FHD TN 60Hz', displayScore: 4,
+    battery: '41Whr (~7 hrs)', batteryScore: 6,
+    weight: '1.69 kg', weightKg: 1.69,
+    os: 'Windows 11 Home',
+    tags: ['Budget', 'Reliable', 'Entry Level'],
+  },
+  {
+    id: 'dell-xps-13',
+    brand: 'Dell', brandColor: '#007DB8', brandBg: '#e8f4fb', brandText: '#005a87',
+    name: 'XPS 13 9340', emoji: '💎',
+    price: 89995,
+    cpu: 'Intel Core Ultra 7 155H', cpuScore: 10,
+    gpu: 'Intel Arc Graphics', gpuScore: 4,
+    ram: '16GB LPDDR5X', ramGb: 16,
+    storage: '512GB NVMe SSD', storageGb: 512,
+    display: '13.4" FHD+ IPS 60Hz', displayScore: 7,
+    battery: '55Whr (~10 hrs)', batteryScore: 9,
+    weight: '1.17 kg', weightKg: 1.17,
+    os: 'Windows 11 Home',
+    tags: ['Ultrabook', 'Premium', 'Ultra 7'],
+  },
+];
+
+/* ============================================================
+   STATE
+   ============================================================ */
+const BRANDS = ['All', ...new Set(LAPTOPS.map(l => l.brand))];
+const NUM_SLOTS = 3;
+const slots = [null, null, null];
+const brandFilters = ['All', 'All', 'All'];
+
+/* ============================================================
+   INIT
+   ============================================================ */
+function init() {
+  const grid = document.getElementById('slots-grid');
+  grid.innerHTML = '';
+  for (let i = 0; i < NUM_SLOTS; i++) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'slot';
+    wrapper.id = 'slot-' + i;
+    wrapper.innerHTML =
+      '<div class="slot-header">' +
+        '<span class="slot-label">Laptop ' + (i + 1) + '</span>' +
+        '<button class="slot-clear" onclick="clearSlot(' + i + ')" title="Remove">&#x2715;</button>' +
+      '</div>' +
+      '<div class="slot-body">' +
+        '<div class="select-wrap">' +
+          '<div class="brand-filter" id="brand-filter-' + i + '"></div>' +
+          '<select class="slot-select" id="select-' + i + '" onchange="selectLaptop(' + i + ', this.value)">' +
+            '<option value="">— Choose a laptop —</option>' +
+          '</select>' +
+        '</div>' +
+        '<div class="laptop-card" id="card-' + i + '"></div>' +
+      '</div>';
+    grid.appendChild(wrapper);
+    buildBrandFilter(wrapper, i);
+    buildSelectOptions(i, 'All');
+  }
+  updateCompareBtn();
+}
+
+function buildBrandFilter(slotEl, i) {
+  const row = slotEl.querySelector(`#brand-filter-${i}`);
+  row.innerHTML = BRANDS.map(b =>
+    `<button class="brand-btn${brandFilters[i] === b ? ' active' : ''}"
+      onclick="setBrandFilter(${i}, '${b}')">${b}</button>`
+  ).join('');
+}
+
+function buildSelectOptions(i, brand) {
+  const sel = document.getElementById(`select-${i}`);
+  const filtered = brand === 'All' ? LAPTOPS : LAPTOPS.filter(l => l.brand === brand);
+  const taken = slots.filter((s, si) => s && si !== i).map(s => s.id);
+  sel.innerHTML = `<option value="">— Choose a laptop —</option>` +
+    filtered.map(l =>
+      `<option value="${l.id}" ${taken.includes(l.id) ? 'disabled' : ''}>${l.brand} ${l.name} — ₱${l.price.toLocaleString()}</option>`
+    ).join('');
+  if (slots[i]) sel.value = slots[i].id;
+}
+
+function setBrandFilter(i, brand) {
+  brandFilters[i] = brand;
+  const slotEl = document.getElementById(`slot-${i}`);
+  buildBrandFilter(slotEl, i);
+  buildSelectOptions(i, brand);
+}
+
+function selectLaptop(i, id) {
+  if (!id) { clearSlot(i); return; }
+  const laptop = LAPTOPS.find(l => l.id === id);
+  if (!laptop) return;
+  slots[i] = laptop;
+  renderCard(i, laptop);
+  document.getElementById(`slot-${i}`).classList.add('filled');
+  // Rebuild other slots to disable this laptop
+  for (let j = 0; j < NUM_SLOTS; j++) {
+    if (j !== i) buildSelectOptions(j, brandFilters[j]);
+  }
+  updateCompareBtn();
+  document.getElementById('compare-table').classList.remove('show');
+}
+
+function renderCard(i, l) {
+  const card = document.getElementById(`card-${i}`);
+  card.innerHTML = `
+    <div class="laptop-brand-chip" style="background:${l.brandBg};color:${l.brandText};">${l.brand}</div>
+    <div class="laptop-thumb" style="background:${l.brandBg};">${l.emoji}</div>
+    <div class="laptop-name">${l.name}</div>
+    <div class="laptop-price-tag">₱${l.price.toLocaleString()}</div>
+    <div class="laptop-tag-row">${l.tags.map(t => `<span class="laptop-tag">${t}</span>`).join('')}</div>`;
+}
+
+function clearSlot(i) {
+  slots[i] = null;
+  document.getElementById(`slot-${i}`).classList.remove('filled');
+  const sel = document.getElementById(`select-${i}`);
+  if (sel) sel.value = '';
+  for (let j = 0; j < NUM_SLOTS; j++) {
+    buildSelectOptions(j, brandFilters[j]);
+  }
+  updateCompareBtn();
+  document.getElementById('compare-table').classList.remove('show');
+}
+
+function updateCompareBtn() {
+  const count = slots.filter(Boolean).length;
+  const btn = document.getElementById('compare-btn');
+  if (count < 2) {
+    btn.classList.add('inactive');
+    btn.textContent = 'Select at least 2 laptops to compare';
+  } else {
+    btn.classList.remove('inactive');
+    btn.textContent = `Compare ${count} Laptop${count > 1 ? 's' : ''}`;
+  }
+}
+
+/* ============================================================
+   COMPARISON TABLE
+   ============================================================ */
+const SPEC_SECTIONS = [
+  {
+    title: 'Performance',
+    rows: [
+      { label: 'Processor',    key: 'cpu',      scoreKey: 'cpuScore',     higher: true,  unit: '' },
+      { label: 'Graphics',     key: 'gpu',      scoreKey: 'gpuScore',     higher: true,  unit: '' },
+      { label: 'RAM',          key: 'ram',      scoreKey: 'ramGb',        higher: true,  unit: '' },
+    ]
+  },
+  {
+    title: 'Storage',
+    rows: [
+      { label: 'Storage',      key: 'storage',  scoreKey: 'storageGb',    higher: true,  unit: '' },
+    ]
+  },
+  {
+    title: 'Display',
+    rows: [
+      { label: 'Display',      key: 'display',  scoreKey: 'displayScore', higher: true,  unit: '' },
+    ]
+  },
+  {
+    title: 'Portability',
+    rows: [
+      { label: 'Battery',      key: 'battery',  scoreKey: 'batteryScore', higher: true,  unit: '' },
+      { label: 'Weight',       key: 'weight',   scoreKey: 'weightKg',     higher: false, unit: '' },
+    ]
+  },
+  {
+    title: 'Software & Price',
+    rows: [
+      { label: 'OS',           key: 'os',       scoreKey: null,           higher: null,  unit: '' },
+      { label: 'Price (PHP)',  key: '_price',   scoreKey: 'price',        higher: false, unit: '' },
+    ]
+  },
+];
+
+function buildTable() {
+  const active = slots.filter(Boolean);
+  if (active.length < 2) return;
+
+  const cols = active.length + 1; // +1 for label col
+  const colW = `${Math.floor(100 / cols)}%`;
+
+  const table = document.getElementById('compare-table');
+  table.innerHTML = '';
+
+  // Grid container
+  const grid = document.createElement('div');
+  grid.style.display = 'grid';
+  grid.style.gridTemplateColumns = `180px ${active.map(() => '1fr').join(' ')}`;
+
+  // Header row
+  const hLabel = document.createElement('div');
+  hLabel.className = 'ct-header-cell label-col';
+  hLabel.style.cssText = 'background:var(--surface);border-bottom:2px solid var(--border);';
+  hLabel.innerHTML = `<div style="font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;">Specification</div>`;
+  grid.appendChild(hLabel);
+
+  active.forEach(l => {
+    const hCell = document.createElement('div');
+    hCell.className = 'ct-header-cell';
+    hCell.style.cssText = `background:var(--card);border-bottom:2px solid var(--border);border-left:1px solid var(--border);`;
+    hCell.innerHTML = `
+      <div class="ct-header-brand" style="color:${l.brandColor};">${l.brand}</div>
+      <div class="ct-header-name">${l.name}</div>
+      <div class="ct-header-price">₱${l.price.toLocaleString()}</div>`;
+    grid.appendChild(hCell);
+  });
+
+  // Spec rows by section
+  SPEC_SECTIONS.forEach(section => {
+    // Section title
+    const secTitle = document.createElement('div');
+    secTitle.className = 'ct-section-title';
+    secTitle.style.gridColumn = `1 / ${cols + 1}`;
+    secTitle.textContent = section.title;
+    grid.appendChild(secTitle);
+
+    section.rows.forEach(row => {
+      // Label cell
+      const labelCell = document.createElement('div');
+      labelCell.className = 'ct-cell label';
+      labelCell.textContent = row.label;
+      grid.appendChild(labelCell);
+
+      // Determine winner
+      let winnerIdx = -1;
+      if (row.scoreKey && row.higher !== null) {
+        const scores = active.map(l => l[row.scoreKey]);
+        const best = row.higher ? Math.max(...scores) : Math.min(...scores);
+        // Only highlight winner if scores differ
+        const allSame = scores.every(s => s === scores[0]);
+        if (!allSame) {
+          winnerIdx = scores.indexOf(best);
+        }
+      }
+
+      active.forEach((l, idx) => {
+        const cell = document.createElement('div');
+        cell.className = 'ct-cell';
+        cell.style.borderLeft = '1px solid var(--border)';
+
+        let displayVal = row.key === '_price'
+          ? `₱${l.price.toLocaleString()}`
+          : l[row.key];
+
+        cell.textContent = displayVal;
+
+        if (idx === winnerIdx) {
+          if (row.key === '_price') {
+            cell.classList.add('best-price');
+          } else {
+            cell.classList.add('winner');
+          }
+        }
+        grid.appendChild(cell);
+      });
+    });
+  });
+
+  table.appendChild(grid);
+
+  // Legend footer
+  const legend = document.createElement('div');
+  legend.className = 'winner-note';
+  legend.innerHTML = `
+    <span><div class="wn-dot" style="background:var(--green)"></div> Best in spec (higher is better)</span>
+    <span><div class="wn-dot" style="background:var(--amber)"></div> Best price (lowest)</span>
+    <span style="color:var(--faint)">Prices based on PH market (mid-2025 estimates). Always verify with retailer.</span>`;
+  table.appendChild(legend);
+
+  table.classList.add('show');
+  table.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+init();
+</script>
+</body>
+</html>
